@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EquGuess</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="frame" id="lobby">
+        <div class="board">
+            <div class="eq-wrap">
+                <div class="eq">EquGuess</div>
+            </div>
+            <form id="lobby-form" class="lobby-form">
+                <input type="text" id="room-input" placeholder="Code" required class="room-input">
+
+                <div class="config-group" id="config-group-0">
+                    <label >Difficulty </label>
+                    <select id="diff-input">
+                        <option value="1" style="background: #1f2b23;"> 1 ( + / - )</option>
+                        <option value="2" style="background: #1f2b23;"> 2 ( × / + / - )</option>
+                        <option value="3" style="background: #1f2b23;"> 3 ( × / + / - )</option>
+                        <option value="4" style="background: #1f2b23;"> 4 ( ÷ / + / - )</option>
+                        <option value="5" style="background: #1f2b23;"> 5 ( ÷ / × / + / - )</option>
+                        <option value="6" style="background: #1f2b23;"> 6 (Mixed)</option>
+
+                    </select>
+                </div>
+
+                <div class="config-group" id="config-group-1">
+                    <div class="max-rounds">
+                        <label> Max Rounds: </label>
+                        <input type="number" id="rounds-input" class="rounds-input" value="0" min="0" placeholder="0" >
+                    </div>
+
+                    <div class="score-goal">
+                        <label> Score Goal: </label>
+                        <input type="number" class="goal-input" id="goal-input" value="5" min="0" placeholder="0" >
+                    </div>
+                </div>
+
+                <button type="submit" class="join-btn">Join Room</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="frame" id="game-frame" style="display: none;">
+        <div class="board" id="board">
+            <div class="top">
+                <div id="room-name">Room: -</div>
+                <div id="score-disp">You: 0 | Them: 0</div>
+
+                <div class="timer" id="timer">0.0s</div>
+                <div class="level" id="level">Level 1</div>
+            </div>
+
+            <div class="eq-wrap">
+                <div class="eq" id="eq">Waiting...</div>
+                <div class="underline"></div>
+            </div>
+
+            <form id="answer">
+                <input type="number" id="ans-input" autocomplete="off" placeholder="..." required>
+                <button type="submit">Guess</button>
+            </form>
+
+            <div class="check" id="check"></div>
+            <div class="best" id="best"></div>
+
+            <div id="gameOv-overlay" class="gameOv-overlay">
+                <h2 id="matchRes-title" class="matchRes-title">GAME OVER!</h2>
+                <p id="matchRes-sub" class="matchRes-sub"></p>
+                
+                <div class="reset-btns">
+                    <button id="playAgain-btn">Play again</button>
+                    <button id="lobby-btn">Lobby</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
