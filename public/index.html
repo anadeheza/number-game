@@ -26,11 +26,20 @@
                         <option value="4" style="background: #1f2b23;"> 4 ( ÷ / + / - )</option>
                         <option value="5" style="background: #1f2b23;"> 5 ( ÷ / × / + / - )</option>
                         <option value="6" style="background: #1f2b23;"> 6 (Mixed)</option>
-
                     </select>
                 </div>
 
                 <div class="config-group" id="config-group-1">
+                    <label > Players</label>
+                    <select id="players-input">
+                        <option value="1">solo mode</option>
+                        <option value="2">2 players 𐀪𐀪</option>
+                        <option value="3">3 players ⋆⋆⋆</option>
+                        <option value="4">4 players 𐦂𖨆𐀪𖠋</option>
+                    </select>
+                </div>
+
+                <div class="config-group" id="config-group-2">
                     <div class="max-rounds">
                         <label> Max Rounds: </label>
                         <input type="number" id="rounds-input" class="rounds-input" value="0" min="0" placeholder="0" >
@@ -57,19 +66,28 @@
                 <div class="level" id="level">Level 1</div>
             </div>
 
-            <div class="eq-wrap">
-                <div class="eq" id="eq">Waiting...</div>
-                <div class="underline"></div>
+            <div class="waiting-room" id="waiting-room">
+                <div class="player-list" id="player-list"></div>
+                <p>Ready?</p>
+                <button id="ready-btn" class="ready-btn"></button>
             </div>
 
-            <form id="answer">
-                <input type="number" id="ans-input" autocomplete="off" placeholder="..." required>
-                <button type="submit">Guess</button>
-            </form>
+            <div class="game-play" id="game-play" style="display: none">
+                <div class="eq-wrap">
+                    <div class="eq" id="eq">Waiting...</div>
+                    <div class="underline"></div>
+                </div>
+            
 
-            <div class="check" id="check"></div>
-            <div class="best" id="best"></div>
+                <form id="answer">
+                    <input type="number" id="ans-input" autocomplete="off" placeholder="..." required>
+                    <button type="submit">Guess</button>
+                </form>
 
+                <div class="check" id="check"></div>
+                <div class="best" id="best"></div>
+            </div>
+            
             <div id="gameOv-overlay" class="gameOv-overlay">
                 <h2 id="matchRes-title" class="matchRes-title">GAME OVER!</h2>
                 <p id="matchRes-sub" class="matchRes-sub"></p>

@@ -12,6 +12,7 @@ const roomInput = document.getElementById('room-input')
 const diffInp = document.getElementById('diff-input')
 const roundsInp = document.getElementById('rounds-input')
 const goalInp = document.getElementById('goal-input')
+const playersInp = document.getElementById('players-input')
 
 const eq = document.getElementById('eq')
 const feedback = document.getElementById('check')
@@ -22,6 +23,11 @@ const roomDisplay = document.getElementById('room-name')
 const scoreDisplay = document.getElementById('score-disp')
 const roundDisplay = document.getElementById('level')
 const timerDisplay = document.getElementById('timer')
+
+const waitingRoom = document.getElementById('waiting-room')
+const gamePlay = document.getElementById('game-play')
+const playersList = document.getElementById('player-list')
+const readyBtn = document.getElementById('ready-btn')
 
 const gameOv = document.getElementById('gameOv-overlay')
 const matchResT = document.getElementById('matchRes-title')
@@ -71,23 +77,20 @@ lobbyForm.addEventListener('submit', (e) => {
     const config = {
         difficulty: diffInp.value,
         maxRounds: roundsInp.value,
-        scoreGoal: goalInp.value
-
+        scoreGoal: goalInp.value,
+        targetPlayers: playersInp.value
     }
 
     socket.emit('joinRoom', {roomId: currentRoom, config})
-
     roomDisplay.textContent = `Room: ${currentRoom}`
+
     lobby.style.display = 'none'
     gameFrame.style.display = 'block'
 
-    input.disabled = false
-    form.querySelector('button').disabled = false
-    gameOv.style.display = 'none'
-    feedback.textContent = ''
-
-    input.focus()
-
+    waitingRoom.style.display = 'flex'
+    gamePlay.style.display = 'none'
+    readyBtn.textContent = 'Ready'
+    readyBtn.style.background = '#e8d54a'
 })
 
 form.addEventListener('submit', (e) => {
@@ -97,6 +100,10 @@ form.addEventListener('submit', (e) => {
 
     socket.emit('submitGuess', { roomId: currentRoom, guess })
     input.value = ''
+})
+
+readyBtn.addEventListener('click', () => {
+    socket.emit('toggleReady', currentRoom)
 })
 
 playAgainBtn.addEventListener('click', () => {
@@ -136,6 +143,15 @@ socket.on('roundWin', ({ winnerId, players, currentRound }) => {
     renderScores(players)
 })
 
+socket.on('gameStart', () => {
+    waitingRoom.style.display = 'none'
+    gamePlay.style.display = 'flex'
+    feedback.textContent = ''
+    input.disabled = false
+    form.querySelector('button').disabled = false
+    input.focus()
+})
+
 socket.on('gameOver', ({winnerId, players}) => {
     clearInterval(timerInterval)
     board.classList.remove('shake')
@@ -147,12 +163,12 @@ socket.on('gameOver', ({winnerId, players}) => {
     if(winnerId === socket.id) {
         matchResT.textContent = 'VICTORY! ᕙ(  •̀ ᗜ •́  )ᕗ';
         matchResT.style.color = '#e8d54a';
-        matchResS.textContent = 'you won the match! congratsദ് ദി(˵ •̀ ᴗ - ˵ )';
+        matchResS.textContent = 'you won the match! congrats ദി(˵ •̀ ᴗ - ˵ )';
         winConfetti();
     } else {
         matchResT.textContent = 'DEFEAT (╥﹏╥)';
         matchResT.style.color = '#ea6a6a';
-        matchResS.textContent = 'It is okay, you will do better next time! ( ´･･)ﾉ(._.`)';
+        matchResS.textContent = 'You will do better next time! ( ´･･)ﾉ(._.`)';
 
     }
     renderScores(players)
@@ -166,16 +182,73 @@ socket.on('wrongAnswer', () => {
 })
 
 socket.on('roomUpdate', (room) => {
+    if(!room.started) {
+        waitingRoom.style.display = 'flex'
+        gamePlay.style.display = 'none'
+        renderWaitingRoom(room)
+    }
+
     if (!room.gameOver && gameOv.style.display === 'flex') {
         gameOv.style.display = 'none'
         input.disabled = false
         form.querySelector('button').disabled = false
         feedback.textContent = ''
-        input.focus()
     }
     roundDisplay.textContent = `Round: ${room.currentRound}`
     renderScores(room.players)
 })
+
+function renderWaitingRoom(room) {
+    playersList.innerHTML = ''
+    let localPlayerReady = false
+
+    const playerss = Object.values(room.players)
+    playerss.forEach((p, idx) => {
+        const item = document.createElement('div')
+        item.className = 'player-item'
+
+        const isMe = p.id === socket.id
+        if (isMe) localPlayerReady = p.ready 
+
+        const nameSpan = document.createElement('span')
+        nameSpan.className = 'player-name'
+        if(isMe) {
+            nameSpan.textContent = `You (Player ${idx + 1})`
+        } else {
+            nameSpan.textContent = `Player ${idx + 1}`
+        }
+
+        const statusSpan = document.createElement('span')
+        statusSpan.className = `player-status ${p.ready ? 'status-ready' : 'status-waiting'}`
+        if (p.ready) {
+            statusSpan.className = `player-status status-ready`
+            statusSpan.textContent = 'Ready'
+        } else {
+            statusSpan.className = `player-status status-waiting`
+            statusSpan.textContent = 'Not ready'
+        }
+
+        item.appendChild(nameSpan)
+        item.appendChild(statusSpan)
+        playersList.appendChild(item)
+    })
+
+    if(localPlayerReady) {
+        readyBtn.textContent = 'Cancel'
+        readyBtn.style.background = '#6b4a35'
+        readyBtn.style.color = '#f2efe3'
+        readyBtn.style.border = '1px solid #cfd6c8'
+    } else {
+        readyBtn.textContent = 'Ready'
+        readyBtn.style.background = '#e8d54a'
+        readyBtn.style.color = '#2a2313'
+        readyBtn.style.border = 'none'
+    }
+
+    const joined = playerss.length
+    const target = room.targetPlayers
+    
+}
 
 function renderScores(players) {
     let scoresText = []

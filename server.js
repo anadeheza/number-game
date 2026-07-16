@@ -160,6 +160,24 @@ function generateEq(l) {
     return {text, ans}
 }
 
+function checkStart(roomId) {
+    const room = rooms[roomId]
+    if(!room) return
+
+    const playerss = Object.values(room.players)
+
+    const all = playerss.length === room.tatgetPlayers
+    const allReady = playerss.every(p => p.ready)
+
+    if (all && allReady) {
+        room.started = true
+        room.currentEq = generateEq(room.difficulty)
+
+        io.to(roomId).emit('gameStart')
+        io.to(roomId).emit('nextEq', room.currentEq.text)
+    }
+}
+
 io.on('connection', (socket) => {
     socket.on('joinRoom', ({roomId, config}) => {
         socket.join(roomId)
@@ -172,15 +190,28 @@ io.on('connection', (socket) => {
                 scoreGoal: parseInt(config.scoreGoal, 10) || 0,
                 currentRound: 1,
                 gameOver: false,
-                currentEq: null
+                currentEq: null,
+                started: false,
+                targetPlayers: parseInt(config.targetPlayers, 10) || 1,
             }
-            rooms[roomId].currentEq = generateEq(rooms[roomId].difficulty)
         }
 
-        rooms[roomId].players[socket.id] = { score: 0, id: socket.id}
+        rooms[roomId].players[socket.id] = { score: 0, id: socket.id, ready: false}
 
         io.to(roomId).emit('roomUpdate', rooms[roomId])
-        socket.emit('nextEq', rooms[roomId].currentEq.text)
+    })
+
+    socket.on('toggleReady', (roomId) => {
+        const room = rooms[roomId]
+        if(!room || room.started) return
+
+        if(room.players[socket.id]) {
+            room.players[socket.id].ready = !room.players[socket.id].ready
+        }
+
+        io.to(roomId).emit('roomUpdate', room)
+        checkStart(roomId)
+
     })
 
     socket.on('submitGuess', ({roomId, guess}) => {
@@ -220,11 +251,13 @@ io.on('connection', (socket) => {
         if(!room) return
 
         room.gameOver = false
+        room.started = false
         room.currentRound = 1
-        room.currentEq = generateEq(room.difficulty)
+        room.currentEq = null
 
         for (let id in room.players) {
             room.players[id].score = 0 
+            room.players[id].ready = false
         }
 
         io.to(roomId).emit('roomUpdate', room)
@@ -238,6 +271,7 @@ io.on('connection', (socket) => {
                 if(Object.keys(rooms[roomId].players).length === 0) {
                     delete rooms[roomId]
                 } else {
+                    rooms[roomId].started = false
                     io.to(roomId).emit('roomUpdate', rooms[roomId])
                 }
             }
