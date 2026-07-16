@@ -235,6 +235,8 @@ io.on('connection', (socket) => {
         if(!room || room.gameOver) return
 
         if(parseInt(guess, 10) === room.currentEq.ans) {
+            const timePassed = Date.now() - room.roundStartTime
+            room.players[socket.id].times.push(timePassed)
             room.players[socket.id].score++
             
             let pScore = room.players[socket.id].score
@@ -250,6 +252,7 @@ io.on('connection', (socket) => {
             } else {
                 room.currentRound++
                 room.currentEq = generateEq(room.difficulty)
+                room.roundStartTime = Date.now()
                 io.to(roomId).emit('roundWin', {
                     winnerId: socket.id,
                     players: room.players,
@@ -281,6 +284,7 @@ io.on('connection', (socket) => {
         for (let id in room.players) {
             room.players[id].score = 0 
             room.players[id].ready = false
+            room.players[id].times = []
         }
 
         io.to(roomId).emit('roomUpdate', room)
@@ -293,7 +297,6 @@ io.on('connection', (socket) => {
 
                 if(Object.keys(rooms[roomId].players).length === 0) {
                     delete rooms[roomId]
-
                 } else {
                     io.to(roomId).emit('roomUpdate', rooms[roomId])
 

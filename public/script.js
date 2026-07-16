@@ -2,7 +2,8 @@ const socket = io()
 
 let currentRoom = null
 let startTime = null
-let timerInterval = null
+let timer = null
+let gameOverTimer = null
 
 const lobby = document.getElementById('lobby')
 const gameFrame = document.getElementById('game-frame')
@@ -32,27 +33,28 @@ const readyBtn = document.getElementById('ready-btn')
 const gameOv = document.getElementById('gameOv-overlay')
 const matchResT = document.getElementById('matchRes-title')
 const matchResS = document.getElementById('matchRes-sub')
+const matchStats = document.getElementById('match-stats')
 const playAgainBtn = document.getElementById('playAgain-btn')
 const backToLobbyBtn = document.getElementById('lobby-btn')
 const endMatchBtn = document.getElementById('end-match-btn')
 
 
 function winConfetti() {
-    const duration = 3000
-    const end = Date.now() + duration
+    const duration = 1000
+    const end = Date.now() + duration;
 
     (function frame() {
         confetti( {
-            particleCount: 20,
+            particleCount: 5,
             angle: 60,
-            spread: 50,
+            spread: 100,
             origin: {x: 0}
         })
 
         confetti({
-            particleCount: 20,
+            particleCount: 5,
             angle: 120,
-            spread: 50,
+            spread: 100,
             origin: {x: 1}
         })
 
@@ -63,11 +65,11 @@ function winConfetti() {
 }
 
 function startTimer() {
-    clearInterval(timerInterval)
+    clearInterval(timer)
     startTime = performance.now()
-    timerInterval = setInterval(() => {
-        const elapsed = (performance.now() - startTime) / 1000
-        timerDisplay.textContent = `${elapsed.toFixed(1)}s`
+    timer = setInterval(() => {
+        const time = (performance.now() - startTime) / 1000
+        timerDisplay.textContent = `${time.toFixed(1)}s`
     }, 100)
 }
 
@@ -95,6 +97,10 @@ lobbyForm.addEventListener('submit', (e) => {
     readyBtn.style.background = '#e8d54a'
 })
 
+readyBtn.addEventListener('click', () => {
+    socket.emit('toggleReady', currentRoom)
+})
+
 form.addEventListener('submit', (e) => {
     e.preventDefault()
     const guess = input.value
@@ -104,16 +110,8 @@ form.addEventListener('submit', (e) => {
     input.value = ''
 })
 
-readyBtn.addEventListener('click', () => {
-    socket.emit('toggleReady', currentRoom)
-})
-
-playAgainBtn.addEventListener('click', () => {
-    socket.emit('requestRematch', currentRoom)
-})
-
 function goToLobby() {
-    clearInterval(timerInterval)
+    clearInterval(timer)
     socket.disconnect()
     socket.connect()
 
@@ -121,10 +119,6 @@ function goToLobby() {
     gameFrame.style.display = 'none'
     lobby.style.display = 'block'
 }
-
-backToLobbyBtn.addEventListener('click', () => {
-    goToLobby()
-})
 
 endMatchBtn.addEventListener('click', () => {
     socket.emit('endMatch', currentRoom)
@@ -134,45 +128,20 @@ socket.on('matchEnded', () => {
     goToLobby()
 })
 
+playAgainBtn.addEventListener('click', () => {
+    socket.emit('requestRematch', currentRoom)
+})
+
+backToLobbyBtn.addEventListener('click', () => {
+    goToLobby()
+})
+
 socket.on('roomFull', ({roomId}) => {
     feedback.textContent = `Room ${roomId} is already full, srry :/`
     feedback.className = 'check wrong'
 
     gameFrame.style.display = 'none'
     lobby.style.display = 'block'
-})
-
-socket.on('nextEq', (text) => {
-    eq.textContent = text
-    input.focus()
-    startTimer()
-})
-
-socket.on('roundWin', ({ winnerId, players, currentRound }) => {
-    board.classList.remove('shake')
-    clearInterval(timerInterval)
-    
-    if (winnerId === socket.id) {
-        feedback.textContent = 'You got it first!'
-        feedback.className = 'check correct'
-    } else {
-        feedback.textContent = 'Your friend has beat you! >:('
-        feedback.className = 'check wrong'
-        board.classList.add('shake')
-    }
-
-
-    roundDisplay.textContent = `Round: ${currentRound}`
-    renderScores(players)
-})
-
-
-socket.on('wrongAnswer', () => {
-    feedback.textContent = 'Wrong! Try again!'
-    feedback.className = 'check wrong'
-    
-    board.classList.add('shake')
-    setTimeout(() => board.classList.remove('shake'), 350)
 })
 
 socket.on('gameStart', () => {
@@ -186,13 +155,86 @@ socket.on('gameStart', () => {
     input.focus()
 })
 
+socket.on('nextEq', (text) => {
+    eq.textContent = text
+    input.focus()
+    startTimer()
+})
+
+socket.on('roundWin', ({ winnerId, players, currentRound }) => {
+    board.classList.remove('shake')
+    clearInterval(timer)
+    
+    if (winnerId === socket.id) {
+        feedback.textContent = 'You got it!'
+        feedback.className = 'check correct'
+    } else {
+        feedback.textContent = 'Your friend has beat you! :/'
+        feedback.className = 'check wrong'
+        board.classList.add('shake')
+    }
+
+
+    roundDisplay.textContent = `Round: ${currentRound}`
+    renderScores(players)
+})
+
+socket.on('wrongAnswer', () => {
+    feedback.textContent = 'Wrong! Try again!'
+    feedback.className = 'check wrong'
+    
+    board.classList.add('shake')
+    setTimeout(() => board.classList.remove('shake'), 350)
+})
+
+function renderScores(players) {
+    let scoresText = []
+    const ids = Object.keys(players)
+
+    ids.forEach((id, idx) => {
+        if (id === socket.id) {
+            scoresText.unshift(`You: ${players[id].score}`)
+        } else {
+            scoresText.push(`Player ${idx + 1}: ${players[id].score}`)
+        }
+
+    })
+    scoreDisplay.textContent = scoresText.join(' | ')
+}
+
+function renderStats(players) {
+    matchStats.innerHTML = ''
+    const ids = Object.keys(players)
+
+    ids.forEach((id, idx) => {
+        const times = players[id].times || []
+        if(times.length === 0) return 
+        
+        const average = times.reduce((a, b) => a + b, 0) / times.length
+        const best = Math.min(...times)
+        
+        
+        const who = id === socket.id ? 'You' : `Player ${idx + 1}`
+
+        const line = document.createElement('div')
+        if (ids.length === 1) {
+            line.textContent = `average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s` 
+        } else {
+            line.textContent = `${who} -> average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s`
+            console.log(`players: ${ids.length}`)
+        }
+        matchStats.appendChild(line)
+    })
+}
+
 socket.on('gameOver', ({winnerId, players}) => {
-    clearInterval(timerInterval)
+    clearInterval(timer)
     board.classList.remove('shake')
     input.disabled = true
     form.querySelector('button').disabled = true
 
     gameOv.style.display = 'flex'
+    requestAnimationFrame(() => gameOv.style.opacity = 1)
 
     if(winnerId === socket.id) {
         matchResT.textContent = 'VICTORY! ᕙ(  •̀ ᗜ •́  )ᕗ';
@@ -206,6 +248,13 @@ socket.on('gameOver', ({winnerId, players}) => {
 
     }
     renderScores(players)
+    renderStats(players)
+
+    clearTimeout(gameOverTimer)
+    gameOverTimer = setTimeout(() => {
+        matchResS.style.opacity = 0.5
+        matchResT.style.opacity = 0.5
+    }, 3000)
 })
 
 
@@ -218,6 +267,9 @@ socket.on('roomUpdate', (room) => {
 
     if (!room.gameOver && gameOv.style.display === 'flex') {
         gameOv.style.display = 'none'
+        clearTimeout(gameOverTimer)
+        matchResT.style.opacity = 1
+        matchResS.style.opacity = 1
         input.disabled = false
         form.querySelector('button').disabled = false
         feedback.textContent = ''
@@ -229,6 +281,8 @@ socket.on('roomUpdate', (room) => {
 function renderWaitingRoom(room) {
     playersList.innerHTML = ''
     let localPlayerReady = false
+    timerDisplay.textContent = ''
+
 
     const playerss = Object.values(room.players)
     playerss.forEach((p, idx) => {
@@ -276,18 +330,5 @@ function renderWaitingRoom(room) {
     const target = room.targetPlayers
     roomDisplay.textContent = `Room: ${currentRoom} (${joined}/${target})`
     
-}
-
-function renderScores(players) {
-    let scoresText = []
-    for (let id in players) {
-        if (id === socket.id) {
-            scoresText.unshift(`You: ${players[id].score}`)
-        } else {
-            scoresText.push(`Them: ${players[id].score}`)
-        }
-
-    }
-    scoreDisplay.textContent = scoresText.join(' | ')
 }
 

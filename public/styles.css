@@ -37,10 +37,14 @@ html, body {
     color: #cfd6c8; 
     text-transform: uppercase;
     margin-bottom: 10px;
+    gap: 2px;
 }
 
 .timer {
     color: #e8d54a;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
     font-weight: bold;
 }
 
@@ -50,8 +54,9 @@ html, body {
 }
 
 .end-match-btn {
-    font-size: 11px;
-    padding: 4px 10px;
+    margin-top: 20px;
+    font-size: 12px;
+    max-width: 100px;
     background: #ea6a6a;
     color: #f2efe3;
 }
@@ -74,14 +79,6 @@ html, body {
     text-shadow: 0 0 1px #f2efe34d;
 }
 
-.underline {
-    width: 60px;
-    height: 3px;
-    background: #f2efe3;
-    opacity: 0.5;
-    margin: 10px auto 0;
-    border-radius: 2px;
-}
 
 form {
     display: flex;
@@ -249,6 +246,8 @@ button:hover {
     text-align: center; 
     padding: 20px; 
     z-index: 10;
+    opacity: 0;
+    transition: opacity 0.5s ease;
 }
 
 .matchRes-title {
@@ -256,12 +255,23 @@ button:hover {
     margin-bottom: 10px; 
     color: #e8d54a;
     font-weight: bold;
+    transition: opacity 0.6s ease;
 }
 
 .matchRes-sub {
     font-size: 16px; 
     margin-bottom: 30px; 
     color: #f2efe3;
+    transition: opacity 0.6s ease;
+}
+
+.match-stats {
+    font-size: 13px;
+    color: #cfd6c8;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .reset-btns {
@@ -343,4 +353,5 @@ button:hover {
 .game-play {
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
