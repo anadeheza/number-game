@@ -33,7 +33,9 @@ const gameOv = document.getElementById('gameOv-overlay')
 const matchResT = document.getElementById('matchRes-title')
 const matchResS = document.getElementById('matchRes-sub')
 const playAgainBtn = document.getElementById('playAgain-btn')
-const bbackToLobbyBtn = document.getElementById('lobby-btn')
+const backToLobbyBtn = document.getElementById('lobby-btn')
+const endMatchBtn = document.getElementById('end-match-btn')
+
 
 function winConfetti() {
     const duration = 3000
@@ -110,11 +112,32 @@ playAgainBtn.addEventListener('click', () => {
     socket.emit('requestRematch', currentRoom)
 })
 
-bbackToLobbyBtn.addEventListener('click', () => {
+function goToLobby() {
+    clearInterval(timerInterval)
     socket.disconnect()
     socket.connect()
 
     gameOv.style.display = 'none'
+    gameFrame.style.display = 'none'
+    lobby.style.display = 'block'
+}
+
+backToLobbyBtn.addEventListener('click', () => {
+    goToLobby()
+})
+
+endMatchBtn.addEventListener('click', () => {
+    socket.emit('endMatch', currentRoom)
+})
+
+socket.on('matchEnded', () => {
+    goToLobby()
+})
+
+socket.on('roomFull', ({roomId}) => {
+    feedback.textContent = `Room ${roomId} is already full, srry :/`
+    feedback.className = 'check wrong'
+
     gameFrame.style.display = 'none'
     lobby.style.display = 'block'
 })
@@ -143,12 +166,23 @@ socket.on('roundWin', ({ winnerId, players, currentRound }) => {
     renderScores(players)
 })
 
+
+socket.on('wrongAnswer', () => {
+    feedback.textContent = 'Wrong! Try again!'
+    feedback.className = 'check wrong'
+    
+    board.classList.add('shake')
+    setTimeout(() => board.classList.remove('shake'), 350)
+})
+
 socket.on('gameStart', () => {
     waitingRoom.style.display = 'none'
     gamePlay.style.display = 'flex'
     feedback.textContent = ''
+    
     input.disabled = false
     form.querySelector('button').disabled = false
+
     input.focus()
 })
 
@@ -174,12 +208,6 @@ socket.on('gameOver', ({winnerId, players}) => {
     renderScores(players)
 })
 
-socket.on('wrongAnswer', () => {
-    feedback.textContent = 'Wrong! Try again!'
-    feedback.className = 'check wrong'
-    board.classList.add('shake')
-    setTimeout(() => board.classList.remove('shake'), 350)
-})
 
 socket.on('roomUpdate', (room) => {
     if(!room.started) {
@@ -219,7 +247,6 @@ function renderWaitingRoom(room) {
         }
 
         const statusSpan = document.createElement('span')
-        statusSpan.className = `player-status ${p.ready ? 'status-ready' : 'status-waiting'}`
         if (p.ready) {
             statusSpan.className = `player-status status-ready`
             statusSpan.textContent = 'Ready'
@@ -247,6 +274,7 @@ function renderWaitingRoom(room) {
 
     const joined = playerss.length
     const target = room.targetPlayers
+    roomDisplay.textContent = `Room: ${currentRoom} (${joined}/${target})`
     
 }
 
@@ -262,3 +290,4 @@ function renderScores(players) {
     }
     scoreDisplay.textContent = scoresText.join(' | ')
 }
+

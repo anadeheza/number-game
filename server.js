@@ -19,7 +19,7 @@ function randInt(min, max) {
 
 function generateEq(l) {
     const level = l
-    let a, b, c, op, text, ans 
+    let a, b, c, op, op1, text, ans 
 
     if (level === 1) {
         a = randInt(1, 9)
@@ -166,12 +166,13 @@ function checkStart(roomId) {
 
     const playerss = Object.values(room.players)
 
-    const all = playerss.length === room.tatgetPlayers
+    const all = playerss.length === room.targetPlayers
     const allReady = playerss.every(p => p.ready)
 
     if (all && allReady) {
         room.started = true
         room.currentEq = generateEq(room.difficulty)
+        room.roundStartTime = Date.now()
 
         io.to(roomId).emit('gameStart')
         io.to(roomId).emit('nextEq', room.currentEq.text)
@@ -180,6 +181,15 @@ function checkStart(roomId) {
 
 io.on('connection', (socket) => {
     socket.on('joinRoom', ({roomId, config}) => {
+        if(rooms[roomId]) {
+            const currentPlayers = Object.keys(rooms[roomId].players).length
+
+            if (currentPlayers >= rooms[roomId].targetPlayers) {
+                socket.emit('roomFull', {roomId})
+                return
+            }
+        }
+
         socket.join(roomId)
 
         if(!rooms[roomId]) {
@@ -187,18 +197,24 @@ io.on('connection', (socket) => {
                 players: {},
                 difficulty: parseInt(config.difficulty, 10) || 1,
                 maxRounds: parseInt(config.maxRounds, 10) || 0,
-                scoreGoal: parseInt(config.scoreGoal, 10) || 0,
+                scoreGoal: parseInt(config.scoreGoal, 10) || 1,
+                targetPlayers: parseInt(config.targetPlayers, 10) || 1,
                 currentRound: 1,
                 gameOver: false,
-                currentEq: null,
                 started: false,
-                targetPlayers: parseInt(config.targetPlayers, 10) || 1,
+                currentEq: null,
             }
         }
 
-        rooms[roomId].players[socket.id] = { score: 0, id: socket.id, ready: false}
+        rooms[roomId].players[socket.id] = { score: 0, id: socket.id, ready: false, times: []}
 
         io.to(roomId).emit('roomUpdate', rooms[roomId])
+
+        const room = rooms[roomId]
+        if(room.started && !room.gameOver  && room.currentEq) {
+            socket.emit('gameStart')
+            socket.emit('nextEq', room.currentEq.text)
+        }
     })
 
     socket.on('toggleReady', (roomId) => {
@@ -246,6 +262,13 @@ io.on('connection', (socket) => {
         }
     })
 
+    socket.on('endMatch', (roomId) => {
+        const room = rooms[roomId]
+        if(!room) return
+
+        io.to(roomId).emit('matchEnded')
+    })
+
     socket.on('requestRematch', (roomId) => {
         const room = rooms[roomId]
         if(!room) return
@@ -261,18 +284,19 @@ io.on('connection', (socket) => {
         }
 
         io.to(roomId).emit('roomUpdate', room)
-        io.to(roomId).emit('nextEq', room.currentEq.text)
     })
 
     socket.on('disconnect', () => {
         for (let roomId in rooms) {
             if(rooms[roomId].players[socket.id]) {
                 delete rooms[roomId].players[socket.id]
+
                 if(Object.keys(rooms[roomId].players).length === 0) {
                     delete rooms[roomId]
+
                 } else {
-                    rooms[roomId].started = false
                     io.to(roomId).emit('roomUpdate', rooms[roomId])
+
                 }
             }
         }
