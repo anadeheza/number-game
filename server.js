@@ -8,7 +8,7 @@ const io = new Server(server, {
     cors: { origin: "*"}
 })
 
-app.use(express.static(__dirname + '/public'))
+app.use(express.static(__dirname))
 
 let rooms = {}
 
@@ -59,21 +59,16 @@ function generateEq(l) {
         if (Math.random() < 0.5) {
             a = randInt(4, 50)
             b = randInt(4, 50)
-            
-            text = `${a} x ${b}`
-            ans = a * b 
-        } else {
-            a = randInt (50, 99)
-            b = randInt (50, 99)
-
+            c = randInt(1, 10)
             op = Math.random() < 0.5 ? '+' : '-'
             if (op === '-' && b > a) [a, b] = [b, a]
-            text = `${a} ${op} ${b}`
+            
+            text = `${a} ${op} ${b} * c`
             
             if (op === '+') {
-                ans = a + b 
+                ans = a + b * c
             } else {
-                ans = a - b
+                ans = a - b * c 
             }
         }
     } else if (level === 4) {
@@ -117,44 +112,31 @@ function generateEq(l) {
         }
         
     } else {
-        if (Math.random() < 0.5) {
-            a = randInt(2, 20)
-            b = randInt(2, 20)
-            c = randInt(1, 50)
+        a = randInt(2, 20)
+        b = randInt(2, 20)
+        c = randInt(1, 50)
 
-            op = Math.random() < 0.5 ? '+' : '-'
-            text = `${a} × ${b} ${op} ${c}`
+        if (b > a) [a, b] = [b, a]
 
-            if(op === '+') { 
-                ans = a * b + c 
+        op = Math.random() < 0.5 ? '+' : '-'
+        op1 = Math.random() < 0.5 ? '*' : '/'
+        text = `${a} ${op1} ${b} ${op} ${c}`
+
+        if(op1 === '/') {
+
+            if (op === '+') {
+                ans = (Math.trunc(a / b)) + c 
             } else { 
-                ans = a * b - c
+                ans = (Math.trunc(a / b)) - c
             }
         } else {
-            a = randInt(2, 20)
-            b = randInt(2, 20)
-            c = randInt(1, 50)
-
-            if (b > a) [a, b] = [b, a]
-
-            op = Math.random() < 0.5 ? '+' : '-'
-            op1 = Math.random() < 0.5 ? '*' : '/'
-            text = `${a} ${op1} ${b} ${op} ${c}`
-
-            if(op1 === '/') {
-                if (op === '+') {
-                    ans = (Math.trunc(a / b)) + c 
-                } else { 
-                    ans = (Math.trunc(a / b)) - c
-                }
-            } else {
-                if (op === '+') {
-                    ans = (a * b) + c 
-                } else { 
-                    ans = (a * b) - c
-                }
+            if (op === '+') {
+                ans = (a * b) + c 
+            } else { 
+                ans = (a * b) - c
             }
         }
+        
     }
 
     return {text, ans}
@@ -261,7 +243,7 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('nextEq', room.currentEq.text)
             } 
         } else {
-            socket.emit('wrongAnswer')
+            socket.emit('wrongAnswer', {correct: room.currentEq.ans })
         }
     })
 
