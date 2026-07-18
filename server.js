@@ -243,7 +243,7 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('nextEq', room.currentEq.text)
             } 
         } else {
-            socket.emit('wrongAnswer', {correct: room.currentEq.ans })
+            socket.emit('wrongAnswer')
         }
     })
 

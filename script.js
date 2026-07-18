@@ -3,7 +3,7 @@ const socket = io()
 let currentRoom = null
 let startTime = null
 let timer = null
-let gameOverTimer = null
+
 
 const lobby = document.getElementById('lobby')
 
@@ -195,8 +195,8 @@ socket.on('roundWin', ({ winnerId, players, currentRound }) => {
     renderScores(players)
 })
 
-socket.on('wrongAnswer', ({ correct }) => {
-    feedback.textContent = `Wrong! Try again! it was ${correct}`
+socket.on('wrongAnswer', () => {
+    feedback.textContent = `Wrong! Try again!`
     feedback.className = 'check wrong'
     
     board.classList.add('shake')
@@ -266,11 +266,6 @@ socket.on('gameOver', ({winnerId, players}) => {
     renderScores(players)
     renderStats(players)
 
-    clearTimeout(gameOverTimer)
-    gameOverTimer = setTimeout(() => {
-        matchResS.style.opacity = 0
-        matchResT.style.opacity = 0
-    }, 3000)
 })
 
 
@@ -283,7 +278,6 @@ socket.on('roomUpdate', (room) => {
 
     if (!room.gameOver && gameOv.style.display === 'flex') {
         gameOv.style.display = 'none'
-        clearTimeout(gameOverTimer)
         matchResT.style.opacity = 1
         matchResS.style.opacity = 1
         input.disabled = false
