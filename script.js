@@ -46,252 +46,6 @@ const backToLobbyBtn = document.getElementById('lobby-btn')
 
 
 
-function winConfetti() {
-    const duration = 1000
-    const end = Date.now() + duration;
-
-    (function frame() {
-        confetti( {
-            particleCount: 5,
-            angle: 60,
-            spread: 100,
-            origin: {x: 0}
-        })
-
-        confetti({
-            particleCount: 5,
-            angle: 120,
-            spread: 100,
-            origin: {x: 1}
-        })
-
-        if (Date.now() < end) {
-            requestAnimationFrame(frame)
-        }
-    }())
-}
-
-function startTimer() {
-    clearInterval(timer)
-    startTime = performance.now()
-    timer = setInterval(() => {
-        const time = (performance.now() - startTime) / 1000
-        timerDisplay.textContent = `${time.toFixed(1)}s`
-    }, 100)
-}
-
-lobbyForm.addEventListener('submit', (e) => {
-    e.preventDefault()
-    currentRoom = roomInput.value.trim().toUpperCase()
-    if (!currentRoom) return
-
-    lobbyError.textContent = ''
-
-
-    const config = {
-        difficulty: diffInp.value,
-        maxRounds: roundsInp.value,
-        scoreGoal: goalInp.value,
-        targetPlayers: playersInp.value
-    }
-
-    socket.emit('joinRoom', {roomId: currentRoom, config})
-    roomDisplay.textContent = `Room: ${currentRoom}`
-
-    lobby.style.display = 'none'
-    gameFrame.style.display = 'block'
-
-    waitingRoom.style.display = 'flex'
-    gamePlay.style.display = 'none'
-    readyBtn.textContent = 'Ready'
-    readyBtn.style.background = '#e8d54a'
-})
-
-readyBtn.addEventListener('click', () => {
-    socket.emit('toggleReady', currentRoom)
-})
-
-form.addEventListener('submit', (e) => {
-    e.preventDefault()
-    const guess = input.value
-    if (!guess) return
-
-    socket.emit('submitGuess', { roomId: currentRoom, guess })
-    input.value = ''
-})
-
-function goToLobby() {
-    clearInterval(timer)
-    socket.disconnect()
-    socket.connect()
-
-    gameOv.style.display = 'none'
-    gameFrame.style.display = 'none'
-    lobby.style.display = 'block'
-}
-
-endMatchBtn.addEventListener('click', () => {
-    socket.emit('endMatch', currentRoom)
-})
-
-socket.on('matchEnded', () => {
-    goToLobby()
-})
-
-playAgainBtn.addEventListener('click', () => {
-    socket.emit('requestRematch', currentRoom)
-})
-
-backToLobbyBtn.addEventListener('click', () => {
-    goToLobby()
-})
-
-backToLobbyWR.addEventListener('click', () => {
-    goToLobby()
-})
-
-socket.on('roomFull', ({roomId}) => {
-
-    gameFrame.style.display = 'none'
-    lobby.style.display = 'block'
-        
-    lobbyError.textContent = `Room ${roomId} is already full, srry :/`
-
-})
-
-socket.on('gameStart', () => {
-    waitingRoom.style.display = 'none'
-    gamePlay.style.display = 'flex'
-    feedback.textContent = ''
-    
-    input.disabled = false
-    form.querySelector('button').disabled = false
-
-    input.focus()
-})
-
-socket.on('nextEq', (text) => {
-    eq.textContent = text
-    if(text.includes('/')) {
-        divHint.textContent = 'hint: divisions results are rounded down, no decimals'
-        
-    } else {
-        divHint.textContent = ''
-    }
-    input.focus()
-    startTimer()
-})
-
-socket.on('roundWin', ({ winnerId, players, currentRound }) => {
-    board.classList.remove('shake')
-    clearInterval(timer)
-    
-    if (winnerId === socket.id) {
-        feedback.textContent = 'You got it!'
-        feedback.className = 'check correct'
-    } else {
-        feedback.textContent = 'Your friend has beat you! :/'
-        feedback.className = 'check wrong'
-        board.classList.add('shake')
-    }
-
-
-    roundDisplay.textContent = `Round: ${currentRound}`
-    renderScores(players)
-})
-
-socket.on('wrongAnswer', () => {
-    feedback.textContent = `Wrong! Try again!`
-    feedback.className = 'check wrong'
-    
-    board.classList.add('shake')
-    setTimeout(() => board.classList.remove('shake'), 350)
-})
-
-function renderScores(players) {
-    let scoresText = []
-    const ids = Object.keys(players)
-
-    ids.forEach((id, idx) => {
-        if (id === socket.id) {
-            scoresText.unshift(`You: ${players[id].score}`)
-        } else {
-            scoresText.push(`Player ${idx + 1}: ${players[id].score}`)
-        }
-
-    })
-    scoreDisplay.textContent = scoresText.join(' | ')
-}
-
-function renderStats(players) {
-    matchStats.innerHTML = ''
-    const ids = Object.keys(players)
-
-    ids.forEach((id, idx) => {
-        const times = players[id].times || []
-        if(times.length === 0) return 
-        
-        const average = times.reduce((a, b) => a + b, 0) / times.length
-        const best = Math.min(...times)
-        
-        
-        const who = id === socket.id ? 'You' : `Player ${idx + 1}`
-
-        const line = document.createElement('div')
-        if (ids.length === 1) {
-            line.textContent = `average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s` 
-        } else {
-            line.textContent = `${who} -> average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s`
-            console.log(`players: ${ids.length}`)
-        }
-        matchStats.appendChild(line)
-    })
-}
-
-socket.on('gameOver', ({winnerId, players}) => {
-    clearInterval(timer)
-    board.classList.remove('shake')
-    input.disabled = true
-    form.querySelector('button').disabled = true
-
-    gameOv.style.display = 'flex'
-    requestAnimationFrame(() => gameOv.style.opacity = 1)
-
-    if(winnerId === socket.id) {
-        matchResT.textContent = 'VICTORY! ᕙ(  •̀ ᗜ •́  )ᕗ';
-        matchResT.style.color = '#e8d54a';
-        matchResS.textContent = 'you won the match! congrats ദി(˵ •̀ ᴗ - ˵ )';
-        winConfetti();
-    } else {
-        matchResT.textContent = 'DEFEAT (╥﹏╥)';
-        matchResT.style.color = '#ea6a6a';
-        matchResS.textContent = 'You will do better next time! ( ´･･)ﾉ(._.`)';
-
-    }
-    renderScores(players)
-    renderStats(players)
-
-})
-
-
-socket.on('roomUpdate', (room) => {
-    if(!room.started) {
-        waitingRoom.style.display = 'flex'
-        gamePlay.style.display = 'none'
-        renderWaitingRoom(room)
-    }
-
-    if (!room.gameOver && gameOv.style.display === 'flex') {
-        gameOv.style.display = 'none'
-        matchResT.style.opacity = 1
-        matchResS.style.opacity = 1
-        input.disabled = false
-        form.querySelector('button').disabled = false
-        feedback.textContent = ''
-    }
-    roundDisplay.textContent = `Round: ${room.currentRound}`
-    renderScores(room.players)
-})
 
 function renderWaitingRoom(room) {
     playersList.innerHTML = ''
@@ -347,3 +101,250 @@ function renderWaitingRoom(room) {
     
 }
 
+lobbyForm.addEventListener('submit', (e) => {
+    e.preventDefault()
+    currentRoom = roomInput.value.trim().toUpperCase()
+    if (!currentRoom) return
+
+    lobbyError.textContent = ''
+
+    const config = {
+        difficulty: diffInp.value,
+        maxRounds: roundsInp.value,
+        scoreGoal: goalInp.value,
+        targetPlayers: playersInp.value
+    }
+
+    socket.emit('joinRoom', {roomId: currentRoom, config})
+    roomDisplay.textContent = `Room: ${currentRoom}`
+
+    waitingRoom.style.display = 'flex'
+    gamePlay.style.display = 'none'
+    readyBtn.textContent = 'Ready'
+    readyBtn.style.background = '#e8d54a'
+})
+
+readyBtn.addEventListener('click', () => {
+    socket.emit('toggleReady', currentRoom)
+})
+
+socket.on('roomFull', ({roomId}) => {
+    lobbyError.textContent = `Room ${roomId} is already full, srry :/`
+})
+
+
+
+function startTimer() {
+    clearInterval(timer)
+    startTime = performance.now()
+    timer = setInterval(() => {
+        const time = (performance.now() - startTime) / 1000
+        timerDisplay.textContent = `${time.toFixed(1)}s`
+    }, 100)
+}
+
+socket.on('gameStart', () => {
+    waitingRoom.style.display = 'none'
+    gamePlay.style.display = 'flex'
+    feedback.textContent = ''
+    
+    input.disabled = false
+    form.querySelector('button').disabled = false
+
+    input.focus()
+})
+
+form.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const guess = input.value
+    if (!guess) return
+
+    socket.emit('submitGuess', { roomId: currentRoom, guess })
+    input.value = ''
+})
+
+socket.on('nextEq', (text) => {
+    eq.textContent = text
+    if(text.includes('/')) {
+        divHint.textContent = 'hint: divisions results are rounded down, no decimals'
+        
+    } else {
+        divHint.textContent = ''
+    }
+    input.focus()
+    startTimer()
+})
+
+socket.on('wrongAnswer', () => {
+    feedback.textContent = `Wrong! Try again!`
+    feedback.className = 'check wrong'
+    
+    board.classList.add('shake')
+    setTimeout(() => board.classList.remove('shake'), 350)
+})
+
+function renderScores(players) {
+    let scoresText = []
+    const ids = Object.keys(players)
+
+    ids.forEach((id, idx) => {
+        if (id === socket.id) {
+            scoresText.unshift(`You: ${players[id].score}`)
+        } else {
+            scoresText.push(`Player ${idx + 1}: ${players[id].score}`)
+        }
+
+    })
+    scoreDisplay.textContent = scoresText.join(' | ')
+}
+
+socket.on('roomUpdate', (room) => {
+    if (lobby.style.display !== 'none') {
+        lobby.style.display = 'none'
+        gameFrame.style.display = 'block'
+    }
+
+    if(!room.started) {
+        waitingRoom.style.display = 'flex'
+        gamePlay.style.display = 'none'
+        renderWaitingRoom(room)
+    }
+
+    if (!room.gameOver && gameOv.style.display === 'flex') {
+        gameOv.style.display = 'none'
+        matchResT.style.opacity = 1
+        matchResS.style.opacity = 1
+        input.disabled = false
+        form.querySelector('button').disabled = false
+        feedback.textContent = ''
+    }
+    roundDisplay.textContent = `Round: ${room.currentRound}`
+    renderScores(room.players)
+})
+
+socket.on('roundWin', ({ winnerId, players, currentRound }) => {
+    board.classList.remove('shake')
+    clearInterval(timer)
+    
+    if (winnerId === socket.id) {
+        feedback.textContent = 'You got it!'
+        feedback.className = 'check correct'
+    } else {
+        feedback.textContent = 'Your friend has beat you! :/'
+        feedback.className = 'check wrong'
+        board.classList.add('shake')
+    }
+
+
+    roundDisplay.textContent = `Round: ${currentRound}`
+    renderScores(players)
+})
+
+
+
+function goToLobby() {
+    clearInterval(timer)
+    socket.disconnect()
+    socket.connect()
+
+    gameOv.style.display = 'none'
+    gameFrame.style.display = 'none'
+    lobby.style.display = 'block'
+}
+
+endMatchBtn.addEventListener('click', () => {
+    socket.emit('endMatch', currentRoom)
+})
+
+socket.on('matchEnded', () => {
+    goToLobby()
+})
+
+playAgainBtn.addEventListener('click', () => {
+    socket.emit('requestRematch', currentRoom)
+})
+
+backToLobbyBtn.addEventListener('click', () => {
+    goToLobby()
+})
+
+backToLobbyWR.addEventListener('click', () => {
+    goToLobby()
+})
+
+
+
+function renderStats(players) {
+    matchStats.innerHTML = ''
+    const ids = Object.keys(players)
+
+    ids.forEach((id, idx) => {
+        const times = players[id].times || []
+        if(times.length === 0) return 
+        
+        const average = times.reduce((a, b) => a + b, 0) / times.length
+        const best = Math.min(...times)
+        
+        
+        const who = id === socket.id ? 'You' : `Player ${idx + 1}`
+
+        const line = document.createElement('div')
+        if (ids.length === 1) {
+            line.textContent = `average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s` 
+        } else {
+            line.textContent = `${who} -> average: ${(average / 1000).toFixed(1)}s | best time: ${(best / 1000).toFixed(1)}s`
+            console.log(`players: ${ids.length}`)
+        }
+        matchStats.appendChild(line)
+    })
+}
+
+function winConfetti() {
+    const duration = 1000
+    const end = Date.now() + duration;
+
+    (function frame() {
+        confetti( {
+            particleCount: 5,
+            angle: 60,
+            spread: 100,
+            origin: {x: 0}
+        })
+
+        confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 100,
+            origin: {x: 1}
+        })
+
+        if (Date.now() < end) {
+            requestAnimationFrame(frame)
+        }
+    }())
+}
+
+socket.on('gameOver', ({winnerId, players}) => {
+    clearInterval(timer)
+    board.classList.remove('shake')
+    input.disabled = true
+    form.querySelector('button').disabled = true
+
+    gameOv.style.display = 'flex'
+    requestAnimationFrame(() => gameOv.style.opacity = 1)
+
+    if(winnerId === socket.id) {
+        matchResT.textContent = 'VICTORY! ᕙ(  •̀ ᗜ •́  )ᕗ';
+        matchResT.style.color = '#e8d54a';
+        matchResS.textContent = 'you won the match! congrats ദി(˵ •̀ ᴗ - ˵ )';
+        winConfetti();
+    } else {
+        matchResT.textContent = 'DEFEAT (╥﹏╥)';
+        matchResT.style.color = '#ea6a6a';
+        matchResS.textContent = 'You will do better next time! ( ´･･)ﾉ(._.`)';
+
+    }
+    renderScores(players)
+    renderStats(players)
+
+})
