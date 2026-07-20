@@ -9,6 +9,7 @@ const lobby = document.getElementById('lobby')
 
 
 const lobbyForm = document.getElementById('lobby-form')
+const lobbyError = document.getElementById('lobby-error')
 const roomInput = document.getElementById('room-input')
 const diffInp = document.getElementById('diff-input')
 const roundsInp = document.getElementById('rounds-input')
@@ -84,6 +85,9 @@ lobbyForm.addEventListener('submit', (e) => {
     currentRoom = roomInput.value.trim().toUpperCase()
     if (!currentRoom) return
 
+    lobbyError.textContent = ''
+
+
     const config = {
         difficulty: diffInp.value,
         maxRounds: roundsInp.value,
@@ -147,11 +151,12 @@ backToLobbyWR.addEventListener('click', () => {
 })
 
 socket.on('roomFull', ({roomId}) => {
-    feedback.textContent = `Room ${roomId} is already full, srry :/`
-    feedback.className = 'check wrong'
 
     gameFrame.style.display = 'none'
     lobby.style.display = 'block'
+        
+    lobbyError.textContent = `Room ${roomId} is already full, srry :/`
+
 })
 
 socket.on('gameStart', () => {
