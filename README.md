@@ -34,5 +34,4 @@ When winning, you get fun confetti and a victory message right above your (and y
 <br>
 When losing, no confetti :/, and a defeat message above your and your friends' stats
 
-<img src="images/victory.png" width="250">
-<img src="images/defeat.png" width="250">
+<img src="images/victory.png" width="300"> <img src="images/defeat.png" width="300">
