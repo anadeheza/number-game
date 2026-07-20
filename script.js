@@ -247,6 +247,9 @@ function goToLobby() {
     socket.disconnect()
     socket.connect()
 
+    lobbyError.textContent = ''
+
+
     gameOv.style.display = 'none'
     gameFrame.style.display = 'none'
     lobby.style.display = 'block'
