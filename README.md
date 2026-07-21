@@ -1,5 +1,5 @@
 # EquGuess
-a race game (made with HTML, CSS and JavaScript) to play with up to 4 friends or in solo mode, if you prefer it that way. The idea is simple, do the math before the rest to win, your time for each equation will be counted and you can see your stats in the end!
+a race game made with HTML, CSS and JavaScript (frontend) and JS + Socket.io (backend) to play with up to 4 friends or in solo mode, if you prefer it that way. The idea is simple, do the math before the rest to win, your time for each equation will be counted and you can see your stats in the end!
 
 ## Lobby & Waiting room
 When entering the game, you'll see a lobby in which you can select the amount of players, difficulty, room name, rounds and score goal

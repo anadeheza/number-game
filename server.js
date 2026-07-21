@@ -56,29 +56,29 @@ function generateEq(l) {
             ans = a * b 
         }
     } else if (level === 3) {
-        if (Math.random() < 0.5) {
-            a = randInt(4, 50)
-            b = randInt(4, 50)
-            c = randInt(1, 10)
-            op = Math.random() < 0.5 ? '+' : '-'
-            if (op === '-' && b > a) [a, b] = [b, a]
+        a = randInt(4, 50)
+        b = randInt(4, 50)
+        c = randInt(1, 10)
+
+        op = Math.random() < 0.5 ? '+' : '-'
+        if (op === '-' && b > a) [a, b] = [b, a]
             
-            text = `${a} ${op} ${b} * c`
+        text = `${a} ${op} ${b} * ${c}`
             
-            if (op === '+') {
-                ans = a + b * c
-            } else {
-                ans = a - b * c 
-            }
+        if (op === '+') {
+            ans = a + b * c
+        } else {
+            ans = a - b * c 
         }
+        
     } else if (level === 4) {
         if (Math.random() < 0.5) {
             a = randInt(2, 50)
             b = randInt(2, 50)
             
-            text = `${a} / ${b}`
-            
             if (b > a) [a, b] = [b, a]
+            
+            text = `${a} / ${b}`
             ans = Math.trunc(a / b)
         } else {
             a = randInt (-50, 99)
@@ -100,10 +100,10 @@ function generateEq(l) {
         b = randInt(2, 100)
 
         op = Math.random() < 0.5 ? '*' : '/'
-        
-        text = `${a} ${op} ${b}`
 
         if (b > a) [a, b] = [b, a]
+
+        text = `${a} ${op} ${b}`
 
         if (op === '/') {
             ans = Math.trunc(a / b)
@@ -243,7 +243,7 @@ io.on('connection', (socket) => {
                 io.to(roomId).emit('nextEq', room.currentEq.text)
             } 
         } else {
-            socket.emit('wrongAnswer')
+            socket.emit('wrongAnswer', { correctAnswer: room.currentEq.ans })
         }
     })
 

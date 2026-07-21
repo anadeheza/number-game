@@ -175,9 +175,11 @@ socket.on('nextEq', (text) => {
     startTimer()
 })
 
-socket.on('wrongAnswer', () => {
+socket.on('wrongAnswer', ({ correctAnswer }) => {
     feedback.textContent = `Wrong! Try again!`
     feedback.className = 'check wrong'
+
+    console.log(`la respuesta es ${correctAnswer}`)
     
     board.classList.add('shake')
     setTimeout(() => board.classList.remove('shake'), 350)
